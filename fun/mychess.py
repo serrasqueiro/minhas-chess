@@ -11,6 +11,7 @@
 import os.path
 import json
 
+DEBUG = 1
 IO_ENCODING = "ISO-8859-1"
 
 BASE_DNAME = os.path.realpath(os.path.dirname(__file__))
@@ -55,7 +56,7 @@ def script(bdir:str, debug=0):
     opts = {}
     what = "D"
     obj = J_LIST
-    msg = do_this(what, param, obj, opts, debug)
+    msg = do_this(what, param, obj, opts, debug=DEBUG)
     if msg:
         print("Error:", msg)
     return 0
@@ -81,7 +82,7 @@ def do_this(what, param, obj, opts=None, debug=0):
         print("# Creating:", jio_name)
         create_json(jio_name, obj)
     myobj = json.load(open(jio_name))
-    print(">>>\n" + json_string(myobj) + "<<<\n\n")
+    #print(">>>\n" + json_string(myobj) + "<<<\n\n")
     save_json(jio_name, myobj, (seq,))
     return res
 
