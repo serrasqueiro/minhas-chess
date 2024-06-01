@@ -3,10 +3,13 @@
 """ Interaction with chess.com
 """
 
+## 	Creates chessfun.json if file does not yet exist
+##
+
 # pylint: disable=missing-function-docstring
 
 import os.path
-#import json
+import json
 
 IO_ENCODING = "ISO-8859-1"
 
@@ -14,6 +17,24 @@ BASE_DNAME = os.path.realpath(os.path.dirname(__file__))
 
 JSON_IO = "chessfun.json"
 COMT_IN = "comentarios.tsv"
+
+MEMBERS_LIST = (
+    {
+        "UserName": "hclmoreira",
+    },
+)
+
+RAW_COMMENTS_SKEL = {
+    "AnId": 0,
+    "Sid": "",
+    "ShortComment": "",
+    "Obs": None,
+}
+
+J_LIST = {
+    "MembersList": MEMBERS_LIST,
+    "RawComments": [RAW_COMMENTS_SKEL],
+}
 
 
 def main():
@@ -32,24 +53,32 @@ def script(bdir:str, debug=0):
     ]
     opts = {}
     what = "D"
-    msg = do_this(what, param, opts, debug)
+    obj = J_LIST
+    msg = do_this(what, param, obj, opts, debug)
     if msg:
         print("Error:", msg)
     return 0
 
-def do_this(what, param, opts=None, debug=0):
+def do_this(what, param, obj, opts=None, debug=0):
     res = []
     opts = {} if opts is None else opts
     assert isinstance(opts, dict), "Bad options"
     assert param, "Nada?"
     jio_name, comm_name = param
-    print("# Reading:", comm_name, "; io:", jio_name)
+    if debug > 0:
+        print("# Reading:", comm_name, "; io:", jio_name)
     with open(comm_name, "r", encoding=IO_ENCODING) as fdcom:
         comms = [ala.rstrip() for ala in fdcom.readlines() if valid_tsv_line(ala)]
     for item in comms:
         spl = item.split("\t")
         g_id = str(int(spl[0]))
-        print(desample(g_id), spl[1:])
+        if debug > 0:
+            print(desample(g_id), spl[1:])
+    if not os.path.isfile(jio_name):
+        print("# Creating:", jio_name)
+        create_json(jio_name, obj)
+    myobj = json.load(open(jio_name))
+    print(">>>\n" + json_string(myobj) + "<<<\n\n")
     return res
 
 def desample(astr):
@@ -69,6 +98,20 @@ def valid_tsv_line(astr):
     spl = astr.split("\t")
     assert len(spl) == 4, f"Wrong tabs: {[astr]}"
     return True
+
+def create_json(fname, obj):
+    """ Create json output for file 'fname' """
+    astr = json_string(obj)
+    with open(fname, "wb") as fdout:
+        fdout.write(astr.encode("ascii"))
+    return fname
+
+def json_string(obj, ensure_ascii=True):
+    """ Dump in JSON format """
+    ind, asort, ensure = 2, True, ensure_ascii
+    astr = json.dumps(obj, indent=ind, sort_keys=asort, ensure_ascii=ensure)
+    assert not astr.endswith('\n'), "No new line?"
+    return astr + '\n'
 
 # Main script
 if __name__ == "__main__":
