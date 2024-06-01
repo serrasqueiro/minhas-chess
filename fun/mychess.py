@@ -26,9 +26,10 @@ MEMBERS_LIST = (
 
 RAW_COMMENTS_SKEL = {
     "AnId": 0,
-    "Sid": "",
+    "Id": None,
+    "IdSys": None,
     "ShortComment": "",
-    "Obs": None,
+    "SysObs": "",
 }
 
 J_LIST = {
@@ -65,20 +66,23 @@ def do_this(what, param, obj, opts=None, debug=0):
     assert isinstance(opts, dict), "Bad options"
     assert param, "Nada?"
     jio_name, comm_name = param
+    seq = []
     if debug > 0:
         print("# Reading:", comm_name, "; io:", jio_name)
     with open(comm_name, "r", encoding=IO_ENCODING) as fdcom:
         comms = [ala.rstrip() for ala in fdcom.readlines() if valid_tsv_line(ala)]
-    for item in comms:
+    for idx, item in enumerate(comms, 1001):
         spl = item.split("\t")
         g_id = str(int(spl[0]))
         if debug > 0:
             print(desample(g_id), spl[1:])
+        seq.append((idx, spl))
     if not os.path.isfile(jio_name):
         print("# Creating:", jio_name)
         create_json(jio_name, obj)
     myobj = json.load(open(jio_name))
     print(">>>\n" + json_string(myobj) + "<<<\n\n")
+    save_json(jio_name, myobj, (seq,))
     return res
 
 def desample(astr):
@@ -105,6 +109,24 @@ def create_json(fname, obj):
     with open(fname, "wb") as fdout:
         fdout.write(astr.encode("ascii"))
     return fname
+
+def save_json(fname, obj, tups):
+    seq = tups[0]
+    #print("###", seq)
+    there = obj["RawComments"]
+    last = there[-1]
+    new = []
+    for idx, spl in seq:
+        alist = spl[:1] + [idx] + spl[1:]
+        #print("###", idx, alist)
+        keys = sorted(last)
+        dct = dict(zip(keys, alist))
+        new.append(dct)
+    new.append(last)
+    #print("JSON:", json_string(new))
+    obj["RawContents"] = new
+    create_json(fname, obj)
+    return True
 
 def json_string(obj, ensure_ascii=True):
     """ Dump in JSON format """
